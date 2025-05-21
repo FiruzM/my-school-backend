@@ -9,8 +9,21 @@ import { arcjetMiddleware } from "./middlewares/arcjet.middleware.js";
 import permissionRouter from "./routes/permission.routes.js";
 import permissionCategoryRouter from "./routes/permissionCategory.routes.js";
 import roleRouter from "./routes/role.routes.js";
+import cors from "cors";
 
 const app = express();
+// Настройки CORS
+const corsOptions = {
+  origin: [
+    "http://localhost:3000", // Для разработки
+    "https://your-production-domain.com", // Для продакшена
+  ],
+  credentials: true, // Разрешаем передачу кук и заголовков авторизации
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

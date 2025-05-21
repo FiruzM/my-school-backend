@@ -43,3 +43,19 @@ export const signIn = async (req, res, next) => {
     next(error);
   }
 };
+
+export const authorizedUser = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};

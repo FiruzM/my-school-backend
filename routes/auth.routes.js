@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { signIn, signOut, signUp } from "../controllers/auth.controller.js";
+import { authorizedUser, signIn } from "../controllers/auth.controller.js";
+import { authorized } from "../middlewares/auth.middleware.js";
 
 const authRouter = Router();
 
-authRouter.post("/sign-up", signUp);
+authRouter.get("/authorized", authorized, authorizedUser);
 authRouter.post("/sign-in", signIn);
-authRouter.post("/sign-out", signOut);
 
 export default authRouter;

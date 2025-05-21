@@ -33,3 +33,25 @@ export const createPermission = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updatePermission = async (req, res, next) => {
+  try {
+    const permission = await Permission.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.status(200).json({ success: true, data: permission });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deletePermission = async (req, res, next) => {
+  try {
+    const permission = await Permission.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true, data: permission });
+  } catch (error) {
+    next(error);
+  }
+};

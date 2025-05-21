@@ -9,6 +9,15 @@ export const getAllRoles = async (req, res) => {
   }
 };
 
+export const getRole = async (req, res) => {
+  try {
+    const role = await Role.findById(req.params.id).populate("permissionIds");
+    res.json(role);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const createRole = async (req, res) => {
   const { name, description, permissionIds } = req.body;
 
@@ -32,10 +41,31 @@ export const createRole = async (req, res) => {
   }
 };
 
-export const getRole = async (req, res) => {
+export const updateRole = async (req, res) => {
+  const { name, description, permissionIds } = req.body;
+  if (!req.params.id) return res.status(400).json({ message: "ID не указан" });
   try {
-    const role = await Role.findById(req.params.id).populate("permissionIds");
-    res.json(role);
+    const role = await Role.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        description,
+        permissionIds,
+      },
+      { new: true }
+    );
+    res.status(200).json({ success: true, data: role });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteRole = async (req, res) => {
+  try {
+    if (!req.params.id)
+      return res.status(400).json({ message: "ID не указан" });
+    const role = await Role.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true, data: role });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
