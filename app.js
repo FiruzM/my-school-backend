@@ -10,6 +10,8 @@ import permissionRouter from "./routes/permission.routes.js";
 import permissionCategoryRouter from "./routes/permissionCategory.routes.js";
 import roleRouter from "./routes/role.routes.js";
 import cors from "cors";
+import subjectRoute from "./routes/subject.routes.js";
+import classRouter from "./routes/class.routes.js";
 
 const app = express();
 // Настройки CORS
@@ -35,6 +37,8 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/permissions", permissionRouter);
 app.use("/api/v1/permissions-categories", permissionCategoryRouter);
 app.use("/api/v1/role", roleRouter);
+app.use("/api/v1/subjects", subjectRoute);
+app.use("/api/v1/classes", classRouter);
 
 app.use(errorMiddleware);
 

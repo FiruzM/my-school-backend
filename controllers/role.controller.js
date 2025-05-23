@@ -12,7 +12,7 @@ export const getAllRoles = async (req, res) => {
 export const getRole = async (req, res) => {
   try {
     const role = await Role.findById(req.params.id).populate("permissionIds");
-    res.json(role);
+    res.json({ success: true, data: role });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

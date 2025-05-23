@@ -25,20 +25,18 @@ export const getUsers = async (req, res, next) => {
 
     // Рассчитываем общее количество страниц
     const totalPages = Math.ceil(total / limit);
-    res
-      .status(200)
-      .json({
-        success: true,
-        data: users,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      });
+    res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -46,15 +44,14 @@ export const getUsers = async (req, res, next) => {
 
 export const getUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id)
-      .populate("role")
-      .select("-password");
-
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
       throw error;
     }
+    const user = await User.findById(req.params.id)
+      .populate("role")
+      .select("-password");
 
     res.status(200).json({ success: true, data: user });
   } catch (error) {
@@ -100,11 +97,12 @@ export const createUser = async (req, res, next) => {
 };
 
 export const updateUser = async (req, res, next) => {
-  const { password, name, email, birthYear, role } = req.body;
-  if (!req.params.id) return res.status(400).json({ message: "ID не указан" });
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
   try {
+    const { password, name, email, birthYear, role } = req.body;
+    if (!req.params.id)
+      return res.status(400).json({ message: "ID не указан" });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {
