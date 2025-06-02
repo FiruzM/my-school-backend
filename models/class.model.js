@@ -11,10 +11,6 @@ const classSchema = new mongoose.Schema({
       ref: "User",
     },
   ],
-  subject: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Subject",
-  },
   teacher: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

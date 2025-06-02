@@ -83,3 +83,42 @@ export const deleteSubject = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getSubjectsAutocomplete = async (req, res, next) => {
+  try {
+    const { search = "" } = req.query;
+
+    const query = {
+      $or: [{ name: { $regex: search, $options: "i" } }],
+    };
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.pageSize) || 10);
+    const skip = (page - 1) * limit;
+
+    const [total, subjects] = await Promise.all([
+      Subject.countDocuments(query),
+      Subject.find(query).skip(skip).select("_id name").limit(limit).lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      data: subjects.map((subject) => ({
+        id: subject._id,
+        text: subject.name,
+      })),
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

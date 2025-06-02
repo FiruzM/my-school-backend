@@ -1,10 +1,27 @@
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 
 export const getUsers = async (req, res, next) => {
   try {
+    const { search = "", roleId = "" } = req.query;
+
+    const query = {
+      $or: [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    if (roleId) {
+      if (!mongoose.Types.ObjectId.isValid(roleId)) {
+        return res.status(400).json({ message: "Неверный формат ID роли" });
+      }
+
+      query.roleId = new mongoose.Types.ObjectId(roleId);
+    }
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.pageSize) || 10;
 
     // Валидация параметров
     if (page < 1 || limit < 1) {
@@ -19,8 +36,8 @@ export const getUsers = async (req, res, next) => {
 
     // Запрашиваем данные с пагинацией
     const [total, users] = await Promise.all([
-      User.countDocuments(),
-      User.find().populate("role").skip(skip).limit(limit).lean(),
+      User.countDocuments(query),
+      User.find(query).populate("role").skip(skip).limit(limit).lean(),
     ]);
 
     // Рассчитываем общее количество страниц
@@ -31,7 +48,7 @@ export const getUsers = async (req, res, next) => {
       pagination: {
         total,
         page,
-        limit,
+        pageSize: limit,
         totalPages,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
@@ -44,14 +61,21 @@ export const getUsers = async (req, res, next) => {
 
 export const getUser = async (req, res, next) => {
   try {
+    const user = await User.findById(req.params.id)
+      .populate({
+        path: "role",
+        populate: {
+          path: "permissionIds",
+        },
+      })
+      .populate("subjects")
+      .select("-password");
+
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
       throw error;
     }
-    const user = await User.findById(req.params.id)
-      .populate("role")
-      .select("-password");
 
     res.status(200).json({ success: true, data: user });
   } catch (error) {
@@ -123,6 +147,47 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
+export const getUserAutocomplete = async (req, res, next) => {
+  try {
+    const { search = "" } = req.query;
+
+    const query = {
+      $or: [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.pageSize) || 10);
+    const skip = (page - 1) * limit;
+
+    const [total, users] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query).skip(skip).select("_id fullName").limit(limit).lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      data: users.map((user) => ({
+        id: user._id,
+        text: user.fullName,
+      })),
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const deleteUser = async (req, res, next) => {
   if (!req.params.id) return res.status(400).json({ message: "ID не указан" });
   try {

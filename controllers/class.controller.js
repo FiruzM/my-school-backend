@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 export const getAllClasses = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.pageSize) || 10;
 
     // Валидация параметров
     if (page < 1 || limit < 1) {
@@ -20,15 +20,8 @@ export const getAllClasses = async (req, res, next) => {
     const [total, classes] = await Promise.all([
       Class.countDocuments(),
       Class.find()
-        .populate({
-          path: "subject",
-          populate: {
-            path: "teacher",
-            populate: {
-              path: "teacher",
-            },
-          },
-        })
+        .populate("teacher")
+        .populate("students")
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -42,7 +35,7 @@ export const getAllClasses = async (req, res, next) => {
       pagination: {
         total,
         page,
-        limit,
+        pageSize: limit,
         totalPages,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
@@ -53,12 +46,29 @@ export const getAllClasses = async (req, res, next) => {
   }
 };
 
+export const getClass = async (req, res, next) => {
+  try {
+    const classId = req.params.id;
+    const classItem = await Class.findById(classId)
+      .populate("teacher")
+      .populate("students");
+    if (!classItem) {
+      const error = new Error("Class not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({ success: true, data: classItem });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createClass = async (req, res, next) => {
   try {
-    const { className, students, subject, teacher } = req.body;
+    const { className, students, teacher } = req.body;
 
     const extendedStudents = await User.find({
-      _id: { $in: subject },
+      _id: { $in: students },
     });
 
     if (extendedStudents.length !== students.length) {
@@ -68,10 +78,48 @@ export const createClass = async (req, res, next) => {
     const newClass = await Class.create({
       className,
       students,
-      subject,
       teacher,
     });
     res.status(201).json({ success: true, data: newClass });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getClassAutocomplete = async (req, res, next) => {
+  try {
+    const { search = "" } = req.query;
+
+    const query = {
+      $or: [{ className: { $regex: search, $options: "i" } }],
+    };
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.pageSize) || 10);
+    const skip = (page - 1) * limit;
+
+    const [total, classes] = await Promise.all([
+      Class.countDocuments(query),
+      Class.find(query).skip(skip).select("_id className").limit(limit).lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      data: classes.map((classItem) => ({
+        id: classItem._id,
+        text: classItem.className,
+      })),
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     next(error);
   }
